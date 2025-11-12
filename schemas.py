@@ -11,38 +11,79 @@ Model name is converted to lowercase for the collection name:
 - BlogPost -> "blogs" collection
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional, List, Literal
+from datetime import datetime
 
-# Example schemas (replace with your own):
+# Core CRM Schemas
 
 class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
     name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    email: EmailStr = Field(..., description="Email address")
+    role: Literal["admin", "manager", "rep"] = Field("rep")
+    team: Optional[str] = Field(None, description="Team or territory name")
+    is_active: bool = Field(True)
 
+class Account(BaseModel):
+    name: str
+    industry: Optional[str] = None
+    size: Optional[str] = Field(None, description="Company size e.g., 11-50")
+    region: Optional[str] = None
+    tags: List[str] = []
+
+class Contact(BaseModel):
+    first_name: str
+    last_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    account_id: Optional[str] = Field(None, description="Linked Account _id")
+    title: Optional[str] = None
+    tags: List[str] = []
+
+class Lead(BaseModel):
+    name: str
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    status: Literal["new", "contacted", "qualified", "lost"] = "new"
+    source: Optional[str] = Field(None, description="Website, Campaign, Referral, etc.")
+    owner_id: Optional[str] = Field(None, description="Assigned User _id")
+    score: Optional[int] = Field(None, ge=0, le=100)
+    notes: Optional[str] = None
+
+class Deal(BaseModel):
+    title: str
+    account_id: Optional[str] = None
+    contact_id: Optional[str] = None
+    value: float = 0.0
+    close_date: Optional[datetime] = None
+    stage: str = Field("prospecting", description="Pipeline stage")
+    probability: Optional[int] = Field(None, ge=0, le=100)
+    lost_reason: Optional[str] = None
+    owner_id: Optional[str] = None
+
+class Task(BaseModel):
+    type: Literal["call", "meeting", "follow-up", "email"] = "follow-up"
+    title: str
+    due_date: Optional[datetime] = None
+    priority: Literal["low", "medium", "high"] = "medium"
+    owner_id: Optional[str] = None
+    related_type: Optional[Literal["lead", "contact", "deal", "account"]] = None
+    related_id: Optional[str] = None
+    notes: Optional[str] = None
+    completed: bool = False
+
+class Activity(BaseModel):
+    subject: str
+    type: Literal["note", "call", "email", "meeting", "status-change"] = "note"
+    user_id: Optional[str] = None
+    related_type: Optional[Literal["lead", "contact", "deal", "account"]] = None
+    related_id: Optional[str] = None
+    details: Optional[str] = None
+
+# Example schemas (kept for reference)
 class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
-
-# Add your own schemas here:
-# --------------------------------------------------
-
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+    title: str
+    description: Optional[str] = None
+    price: float
+    category: str
+    in_stock: bool = True
